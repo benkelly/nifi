@@ -87,12 +87,11 @@ import org.slf4j.LoggerFactory;
  *      <li> <a href="https://github.com/Azure-Samples/ms-identity-java-daemon">sample</a></li>
  *  </ul>
  * </p>
- * Enable 'upn' optional claim for ID token using 
- * <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims#configuring-optional-claims">
- * Azure AAD document</a> and disable 'Replace has marks' option.
  * </p>
- * And, set nifi.security.user.oidc.claim.identifying.user=upn in nifi.properties file.
- * </p> 
+ * And, set the following in nifi.properties file.
+ * nifi.security.user.oidc.additional.scopes=profile
+ * nifi.security.user.oidc.claim.identifying.user=oid
+ * </p>
  */
 public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
@@ -410,17 +409,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                 for (DirectoryObject userDO : userpage.getCurrentPage()) {
                     JsonObject jsonUser = userDO.getRawObject();
                     final String idUser = jsonUser.get("id").getAsString();
-                    final String userName;
-                    if (!jsonUser.get("userPrincipalName").isJsonNull()) {
-                        userName = jsonUser.get("userPrincipalName").getAsString();
-                    } else if (!jsonUser.get("mail").isJsonNull()) {
-                        userName = jsonUser.get("mail").getAsString();
-                    } else {
-                        userName = jsonUser.get("displayName").getAsString();
-                    }
-                    final User user = new User.Builder().identifier(idUser).identity(userName).build();
-                    idUserMap.put(idUser, user);
-                    nameUserMap.put(userName, user);
+                    final User user = new User.Builder().identifierGenerateRandom().identity(idUser).build();
+                    idUserMap.put(user.getIdentifier(), user);
+                    nameUserMap.put(idUser, user);
                     groupBuilder.addUser(idUser);
                 }
                 IDirectoryObjectCollectionWithReferencesRequestBuilder nextPageRequest = userpage.getNextPage();
